@@ -1,0 +1,992 @@
+<style>
+  :root {
+    --ink: #111;
+    --paper: #f7f3ea;
+    --paper-dark: #ede5d1;
+    --muted: #6b5f4a;
+    --accent: #2a2a2a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-serif), Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 24px 80px; }
+  header.hero {
+    text-align: center; padding: 24px 0 32px;
+    border-bottom: 1.5px solid var(--ink); margin-bottom: 28px;
+  }
+  header.hero h1 { font-size: 38px; margin: 0 0 6px; letter-spacing: 0.5px; font-weight: 500; }
+  header.hero .tag { font-style: italic; color: var(--muted); font-size: 15px; }
+  .input-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .input-row input {
+    flex: 1; min-width: 220px; padding: 14px 16px; font-size: 16px;
+    font-family: inherit; background: white; border: 1.5px solid var(--ink);
+    border-radius: 4px; color: var(--ink);
+  }
+  button.primary {
+    padding: 14px 22px; font-size: 15px; font-family: inherit;
+    background: var(--ink); color: var(--paper); border: 1.5px solid var(--ink);
+    border-radius: 4px; cursor: pointer; font-weight: 500; letter-spacing: 0.3px;
+  }
+  button.primary:hover { background: #333; }
+  button.primary:disabled { background: #999; border-color: #999; cursor: not-allowed; }
+  button.secondary {
+    padding: 10px 16px; font-size: 14px; font-family: inherit;
+    background: transparent; color: var(--ink); border: 1.5px solid var(--ink);
+    border-radius: 4px; cursor: pointer;
+  }
+  button.secondary:hover { background: var(--paper-dark); }
+  button.secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .suggestions span { font-size: 13px; color: var(--muted); margin-right: 4px; }
+  .chip {
+    padding: 6px 12px; font-size: 13px; background: var(--paper-dark);
+    border: 1px solid #c8bd9f; border-radius: 14px; cursor: pointer;
+    color: var(--ink); font-family: inherit;
+  }
+  .chip:hover { background: #e0d4b5; }
+  .status {
+    padding: 14px 18px; background: var(--paper-dark);
+    border-left: 4px solid var(--ink); margin-bottom: 20px;
+    font-size: 14px; font-style: italic;
+  }
+  .status.error { background: #f5d8d8; border-left-color: #8a2020; }
+  .stage {
+    background: white; border: 1.5px solid var(--ink);
+    border-radius: 6px; padding: 20px; margin-bottom: 24px;
+  }
+  .stage h2 { margin: 0 0 14px; font-size: 22px; font-weight: 500; }
+  .verse-text {
+    font-size: 16px; line-height: 1.75; max-height: 200px;
+    overflow-y: auto; padding-right: 8px; color: var(--accent);
+  }
+  .verse-text sup { font-size: 11px; color: var(--muted); margin-right: 2px; font-weight: 500; }
+  .scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .scene-card {
+    background: white; border: 1.2px solid #c8bd9f; border-radius: 4px;
+    padding: 12px; transition: transform 0.15s, border-color 0.15s;
+  }
+  .scene-card:hover { border-color: var(--ink); transform: translateY(-2px); }
+  .scene-card .num { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .scene-card .title { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+  .scene-card .preview {
+    width: 100%; aspect-ratio: 16/10; background: white;
+    border: 1px solid #ddd; border-radius: 3px; overflow: hidden; margin-bottom: 8px;
+  }
+  .scene-card .preview svg { width: 100%; height: 100%; display: block; }
+  .scene-card .narr { font-size: 12px; color: var(--muted); line-height: 1.5; font-style: italic; }
+  .player { background: black; border-radius: 6px; overflow: hidden; margin-bottom: 18px; position: relative; }
+  .player canvas { width: 100%; display: block; background: white; }
+  .player .caption {
+    position: absolute; bottom: 80px; left: 0; right: 0;
+    text-align: center; color: white;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7);
+    font-size: 18px; font-style: italic; padding: 0 30px;
+    line-height: 1.5; pointer-events: none;
+    font-family: var(--font-serif), Georgia, serif;
+  }
+  .player .scripture-ref {
+    position: absolute; top: 16px; right: 20px; color: white;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    font-size: 13px; letter-spacing: 1px; pointer-events: none;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .controls .spacer { flex: 1; }
+  .progress { height: 6px; background: var(--paper-dark); border-radius: 3px; margin-bottom: 14px; overflow: hidden; }
+  .progress .bar { height: 100%; background: var(--ink); width: 0%; transition: width 0.2s linear; }
+  .download-link {
+    display: inline-block; margin-top: 12px; padding: 10px 16px;
+    background: #2d5016; color: white; text-decoration: none;
+    border-radius: 4px; font-size: 14px;
+  }
+  details.options { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  details.options summary { cursor: pointer; padding: 4px 0; }
+  details.options label {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-right: 16px; margin-top: 8px; color: var(--ink);
+  }
+  .hidden { display: none !important; }
+  footer { text-align: center; margin-top: 40px; font-size: 12px; color: var(--muted); font-style: italic; }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Living Lines Bible</h1>
+    <div class="tag">Turn any passage into a short animated story</div>
+  </header>
+
+  <div class="input-row">
+    <input id="verseInput" type="text" placeholder="Enter a passage, e.g. John 6:1-14" value="Mark 4:35-41" />
+    <button id="goBtn" class="primary">Bring it to life</button>
+  </div>
+
+  <div class="suggestions">
+    <span>Try:</span>
+    <button class="chip" data-q="Mark 4:35-41">Jesus calms the storm</button>
+    <button class="chip" data-q="John 6:1-14">Feeding the 5000</button>
+    <button class="chip" data-q="Luke 15:11-24">Prodigal son</button>
+    <button class="chip" data-q="Daniel 6:16-23">Daniel in the lions' den</button>
+    <button class="chip" data-q="Matthew 14:22-33">Walking on water</button>
+  </div>
+
+  <details class="options">
+    <summary>Options</summary>
+    <label><input type="checkbox" id="narrationOn" checked /> Voice narration</label>
+    <label><input type="checkbox" id="ambienceOn" checked /> Background ambience</label>
+    <label>Per-scene seconds: <input type="number" id="sceneSecs" value="7" min="4" max="15" style="width:50px"/></label>
+  </details>
+
+  <div id="status" class="status hidden"></div>
+
+  <div id="verseStage" class="stage hidden">
+    <h2 id="verseHeading">Passage</h2>
+    <div id="verseText" class="verse-text"></div>
+  </div>
+
+  <div id="scenesStage" class="stage hidden">
+    <h2>Scenes</h2>
+    <div id="sceneGrid" class="scene-grid"></div>
+  </div>
+
+  <div id="playerStage" class="stage hidden">
+    <h2>Your animated story</h2>
+    <div class="progress"><div id="progressBar" class="bar"></div></div>
+    <div class="player">
+      <canvas id="stage" width="1280" height="720"></canvas>
+      <div id="sceneCaption" class="caption"></div>
+      <div id="scriptureRef" class="scripture-ref"></div>
+    </div>
+    <div class="controls">
+      <button id="playBtn" class="secondary">Play</button>
+      <button id="recordBtn" class="primary">Record &amp; download</button>
+      <div class="spacer"></div>
+      <button id="restartBtn" class="secondary">New passage</button>
+    </div>
+    <div id="downloadArea"></div>
+  </div>
+
+  <footer>
+    Original line drawings generated fresh for each passage. Public domain scripture via bible-api.com.
+  </footer>
+</div>
+
+<script>
+  const state = {
+    reference: '', verseText: '', verses: [], scenes: [],
+    audioCtx: null, ambienceNodes: null,
+    isPlaying: false, isRecording: false, recordedBlob: null,
+    currentSceneIdx: 0, animFrameId: null,
+    speechUtterance: null, recorderDest: null,
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function setStatus(msg, isError = false) {
+    const el = $('status');
+    if (!msg) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.classList.toggle('error', isError);
+    el.textContent = msg;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ============ BIBLE FETCH ============
+  async function fetchPassage(ref) {
+    const url = `https://bible-api.com/${encodeURIComponent(ref)}?translation=web`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Could not find that passage. Check the reference.');
+    const data = await r.json();
+    if (!data.verses || !data.verses.length) throw new Error('No verses returned.');
+    return {
+      reference: data.reference,
+      text: data.text.trim(),
+      verses: data.verses.map(v => ({
+        chapter: v.chapter, verse: v.verse, text: v.text.trim()
+      }))
+    };
+  }
+
+  function renderVerse() {
+    $('verseHeading').textContent = state.reference;
+    $('verseText').innerHTML = state.verses.map(v =>
+      `<sup>${v.verse}</sup>${escapeHtml(v.text)} `
+    ).join('');
+    $('verseStage').classList.remove('hidden');
+  }
+
+  // ============ OFFLINE SCENE PLANNING ============
+  const KEYWORD_RULES = [
+    { kw: ['boat', 'ship', 'sea', 'storm', 'wind', 'waves', 'sail'], type: 'boat-storm', mood: 'fearful', sound: 'wind' },
+    { kw: ['lion'], type: 'lions', mood: 'tense', sound: 'lions-roar' },
+    { kw: ['bread', 'fish', 'loaves', 'feast', 'eat', 'fed', 'feed', 'meal', 'supper', 'table'], type: 'feast', mood: 'joyful', sound: 'celebration' },
+    { kw: ['pray', 'prayed', 'praying', 'knelt', 'kneeling'], type: 'prayer', mood: 'solemn', sound: 'silence' },
+    { kw: ['mountain', 'hill', 'top of'], type: 'mountain', mood: 'solemn', sound: 'wind' },
+    { kw: ['crowd', 'multitude', 'people', 'gathered', 'followed him'], type: 'crowd', mood: 'calm', sound: 'crowd-murmur' },
+    { kw: ['heal', 'healed', 'rose', 'sight', 'leper', 'lame', 'blind', 'miracle', 'sign', 'wonders'], type: 'miracle', mood: 'miraculous', sound: 'celebration' },
+    { kw: ['journey', 'road', 'walked', 'traveled', 'departed', 'set out'], type: 'journey', mood: 'calm', sound: 'footsteps' },
+    { kw: ['shore', 'beach', 'lake', 'river'], type: 'shore', mood: 'calm', sound: 'waves' },
+    { kw: ['house', 'home', 'father', 'son returned', 'came to himself'], type: 'house', mood: 'joyful', sound: 'celebration' },
+    { kw: ['field', 'sower', 'seed', 'harvest'], type: 'field', mood: 'calm', sound: 'wind' },
+    { kw: ['altar', 'sacrifice', 'offering', 'burnt'], type: 'altar', mood: 'solemn', sound: 'fire-crackle' },
+    { kw: ['said', 'answered', 'replied', 'spoke', 'asked', 'told'], type: 'figures-talking', mood: 'calm', sound: 'silence' },
+  ];
+
+  function classifyText(text) {
+    const lower = text.toLowerCase();
+    const scores = {};
+    for (const rule of KEYWORD_RULES) {
+      let score = 0;
+      for (const k of rule.kw) if (lower.includes(k)) score += 1;
+      if (score > 0) scores[rule.type] = (scores[rule.type] || 0) + score;
+    }
+    let best = null, bestScore = 0;
+    for (const rule of KEYWORD_RULES) {
+      if (scores[rule.type] && scores[rule.type] > bestScore) {
+        bestScore = scores[rule.type];
+        best = rule;
+      }
+    }
+    return best || { type: 'figures-talking', mood: 'calm', sound: 'silence' };
+  }
+
+  function shortenForNarration(text, maxWords = 28) {
+    let s = text.replace(/\s+/g, ' ').trim();
+    s = s.replace(/\bunto\b/gi, 'to')
+         .replace(/\byea\b/gi, 'yes')
+         .replace(/\bbehold,?\s*/gi, '')
+         .replace(/\bverily,?\s*/gi, 'truly, ');
+    const words = s.split(' ');
+    if (words.length <= maxWords) return s;
+    const trimmed = words.slice(0, maxWords).join(' ');
+    const lastPeriod = Math.max(trimmed.lastIndexOf('. '), trimmed.lastIndexOf('! '), trimmed.lastIndexOf('? '));
+    if (lastPeriod > 40) return trimmed.slice(0, lastPeriod + 1);
+    return trimmed.replace(/[,;:]$/, '') + '...';
+  }
+
+  function titleFor(verse, classification) {
+    const TITLE_MAP = {
+      'boat-storm': ['On the stormy sea', 'The wind rises', 'Caught in the storm', 'The boat is tossed'],
+      'lions': ['Into the den', 'Among the lions', 'The lions are silent', 'Daniel is shut in'],
+      'feast': ['Bread for all', 'They all ate', 'The meal begins', 'Baskets overflow'],
+      'prayer': ['He prayed alone', 'A quiet prayer', 'On bended knee', 'Lifting up his voice'],
+      'mountain': ['Up the mountain', 'On the high place', 'At the summit', 'Above the valley'],
+      'crowd': ['The crowd gathers', 'They followed him', 'Among the multitude', 'A great crowd'],
+      'miracle': ['A sign is given', 'The wonder', 'Mercy shown', 'The miracle'],
+      'journey': ['On the road', 'They set out', 'The journey', 'A long walk'],
+      'shore': ['By the water', 'At the shore', 'They came to land', 'Along the lake'],
+      'house': ['Coming home', 'The father waits', 'Welcome back', 'At the doorway'],
+      'field': ['In the field', 'The harvest', 'Among the grain', 'Sowing seed'],
+      'altar': ['At the altar', 'The offering', 'Fire on the altar', 'Before the Lord'],
+      'figures-talking': ['He spoke to them', 'A teaching', 'The question', 'The answer'],
+    };
+    const options = TITLE_MAP[classification.type] || ['The scene'];
+    return options[verse % options.length];
+  }
+
+  function planScenesLocally(passage) {
+    const verses = passage.verses;
+    const targetSceneCount = Math.min(6, Math.max(4, Math.ceil(verses.length / 2)));
+    const scenes = [];
+    const perScene = Math.ceil(verses.length / targetSceneCount);
+    for (let i = 0; i < verses.length; i += perScene) {
+      const group = verses.slice(i, i + perScene);
+      const combinedText = group.map(v => v.text).join(' ');
+      const classification = classifyText(combinedText);
+      scenes.push({
+        title: titleFor(group[0].verse, classification),
+        narration: shortenForNarration(combinedText),
+        imageType: classification.type,
+        mood: classification.mood,
+        sound: classification.sound,
+        verseRange: group.length === 1
+          ? `v${group[0].verse}`
+          : `v${group[0].verse}-${group[group.length-1].verse}`,
+      });
+    }
+    return scenes;
+  }
+
+  // ============ SVG SCENE GENERATION ============
+  const SVG_W = 1280, SVG_H = 720;
+
+  function svgWrap(inner) {
+    return `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><rect width="${SVG_W}" height="${SVG_H}" fill="white"/><g fill="none" stroke="#111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">${inner}</g></svg>`;
+  }
+
+  function stickFigure(cx, cy, pose, scale, options) {
+    options = options || {};
+    const s = scale || 1;
+    const headR = 22 * s;
+    let g = '';
+    if (options.halo) g += `<circle cx="${cx}" cy="${cy}" r="${headR + 12}" stroke-width="${4*s}"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="${headR}"/>`;
+    const neckY = cy + headR;
+    const torsoH = 80 * s;
+    const legY = neckY + torsoH;
+    const footY = legY + 60 * s;
+
+    if (pose === 'robed') {
+      g += `<path d="M ${cx} ${neckY} L ${cx - 45*s} ${footY} L ${cx + 45*s} ${footY} Z"/>`;
+    } else if (pose === 'kneeling') {
+      g += `<line x1="${cx}" y1="${neckY}" x2="${cx + 5*s}" y2="${legY - 10*s}"/>`;
+      g += `<line x1="${cx + 5*s}" y1="${legY - 10*s}" x2="${cx + 35*s}" y2="${footY - 20*s}"/>`;
+      g += `<line x1="${cx + 5*s}" y1="${legY - 10*s}" x2="${cx - 25*s}" y2="${footY - 20*s}"/>`;
+    } else {
+      g += `<line x1="${cx}" y1="${neckY}" x2="${cx}" y2="${legY}"/>`;
+      g += `<line x1="${cx}" y1="${legY}" x2="${cx - 20*s}" y2="${footY}"/>`;
+      g += `<line x1="${cx}" y1="${legY}" x2="${cx + 20*s}" y2="${footY}"/>`;
+    }
+
+    const armY = neckY + 30 * s;
+    const arms = options.arms || 'down';
+    if (arms === 'up') {
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx - 40*s}" y2="${neckY - 30*s}"/>`;
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx + 40*s}" y2="${neckY - 30*s}"/>`;
+    } else if (arms === 'out') {
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx - 50*s}" y2="${armY + 10*s}"/>`;
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx + 50*s}" y2="${armY + 10*s}"/>`;
+    } else if (arms === 'praying') {
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx - 15*s}" y2="${armY + 25*s}"/>`;
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx + 15*s}" y2="${armY + 25*s}"/>`;
+    } else if (arms === 'pointing') {
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx + 60*s}" y2="${armY - 40*s}"/>`;
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx - 25*s}" y2="${armY + 30*s}"/>`;
+    } else if (arms === 'head') {
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx - 25*s}" y2="${cy - 5*s}"/>`;
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx + 25*s}" y2="${cy - 5*s}"/>`;
+    } else {
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx - 25*s}" y2="${legY - 10*s}"/>`;
+      g += `<line x1="${cx}" y1="${armY}" x2="${cx + 25*s}" y2="${legY - 10*s}"/>`;
+    }
+    return g;
+  }
+
+  function sceneBoatStorm(scene) {
+    let g = '';
+    const fearful = scene.mood === 'fearful' || scene.mood === 'tense';
+    g += `<path d="M 60 110 q 30 -50 75 -30 q 30 -50 80 -25 q 35 -50 85 -20 q 35 -50 90 -20 q 35 -45 90 -15 q 35 -40 90 -10 q 35 -35 85 -5 q 35 -30 85 -5 q 35 -25 80 0 q 30 -20 65 5" stroke-width="6"/>`;
+    if (fearful) {
+      g += `<path d="M 280 130 L 250 220 L 295 220 L 260 320" stroke-width="7"/>`;
+      g += `<path d="M 980 140 L 950 230 L 995 230 L 960 330" stroke-width="7"/>`;
+    }
+    for (let i = 0; i < 14; i++) {
+      const rx = 80 + i * 80 + Math.random() * 30;
+      const ry = 170 + Math.random() * 40;
+      g += `<line x1="${rx}" y1="${ry}" x2="${rx - 12}" y2="${ry + 60}" stroke-width="4"/>`;
+    }
+    g += `<path d="M 180 540 Q 640 690 1100 540" stroke-width="7"/>`;
+    g += `<line x1="180" y1="540" x2="1100" y2="540" stroke-width="6"/>`;
+    g += `<line x1="640" y1="250" x2="640" y2="540" stroke-width="6"/>`;
+    g += `<line x1="510" y1="310" x2="770" y2="310" stroke-width="5"/>`;
+    g += `<path d="M 510 310 Q 470 410 540 470 Q 640 450 770 470 Q 800 405 770 310" stroke-width="6"/>`;
+    g += `<path d="M 680 330 L 660 410 L 690 380 L 670 460" stroke-width="5"/>`;
+    g += stickFigure(720, 405, 'robed', 1.1, { halo: true, arms: scene.mood === 'calm' ? 'down' : 'pointing' });
+    g += stickFigure(280, 430, 'standing', 0.9, { arms: 'up' });
+    g += stickFigure(390, 450, 'standing', 0.9, { arms: 'head' });
+    g += stickFigure(500, 470, 'kneeling', 0.85, { arms: 'praying' });
+    g += stickFigure(880, 460, 'standing', 0.9, { arms: 'head' });
+    g += stickFigure(990, 455, 'standing', 0.9, { arms: 'out' });
+    g += `<path d="M 0 540 Q 80 460 160 510 Q 200 460 240 500" stroke-width="6"/>`;
+    g += `<path d="M 1280 540 Q 1200 460 1120 510 Q 1080 460 1040 500" stroke-width="6"/>`;
+    g += `<path d="M 40 620 Q 160 595 280 620 Q 400 645 520 620 Q 640 595 760 620 Q 880 645 1000 620 Q 1120 595 1240 620" stroke-width="5"/>`;
+    g += `<path d="M 80 670 Q 200 650 320 670 Q 440 690 560 670 Q 680 650 800 670 Q 920 690 1040 670 Q 1160 650 1240 670" stroke-width="5"/>`;
+    return g;
+  }
+
+  function sceneCrowd() {
+    let g = '';
+    g += `<line x1="0" y1="560" x2="1280" y2="560" stroke-width="5"/>`;
+    g += `<path d="M 0 560 Q 200 470 400 530 Q 600 470 800 530 Q 1000 470 1280 530" stroke-width="5"/>`;
+    g += stickFigure(640, 360, 'robed', 1.3, { halo: true, arms: 'out' });
+    for (let r = 0; r < 3; r++) {
+      const yBase = 480 + r * 30;
+      const count = 14 + r * 4;
+      for (let i = 0; i < count; i++) {
+        const x = 60 + (i / (count - 1)) * 1160;
+        if (Math.abs(x - 640) < 90 && r === 0) continue;
+        const headR = 12 - r * 1.5;
+        g += `<circle cx="${x.toFixed(1)}" cy="${yBase}" r="${headR}" stroke-width="4"/>`;
+        g += `<line x1="${x.toFixed(1)}" y1="${yBase + headR}" x2="${x.toFixed(1)}" y2="${yBase + 35 - r*5}" stroke-width="4"/>`;
+      }
+    }
+    g += stickFigure(220, 450, 'standing', 0.8, { arms: 'up' });
+    g += stickFigure(1060, 460, 'standing', 0.8, { arms: 'out' });
+    return g;
+  }
+
+  function sceneMiracle() {
+    let g = '';
+    g += `<line x1="0" y1="580" x2="1280" y2="580" stroke-width="5"/>`;
+    g += `<circle cx="640" cy="180" r="50" stroke-width="6"/>`;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const x1 = 640 + Math.cos(a) * 70;
+      const y1 = 180 + Math.sin(a) * 70;
+      const x2 = 640 + Math.cos(a) * 110;
+      const y2 = 180 + Math.sin(a) * 110;
+      g += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke-width="5"/>`;
+    }
+    g += stickFigure(640, 380, 'robed', 1.3, { halo: true, arms: 'up' });
+    g += stickFigure(280, 460, 'standing', 0.95, { arms: 'up' });
+    g += stickFigure(440, 470, 'kneeling', 0.9, { arms: 'praying' });
+    g += stickFigure(840, 470, 'kneeling', 0.9, { arms: 'praying' });
+    g += stickFigure(1000, 460, 'standing', 0.95, { arms: 'up' });
+    return g;
+  }
+
+  function sceneFiguresTalking() {
+    let g = '';
+    g += `<line x1="0" y1="580" x2="1280" y2="580" stroke-width="5"/>`;
+    g += stickFigure(450, 360, 'robed', 1.2, { halo: true, arms: 'pointing' });
+    g += stickFigure(820, 380, 'standing', 1.1, { arms: 'out' });
+    g += `<path d="M 950 580 Q 1100 510 1280 560" stroke-width="5"/>`;
+    return g;
+  }
+
+  function sceneJourney() {
+    let g = '';
+    g += `<path d="M 100 650 Q 400 550 640 620 Q 880 690 1180 580" stroke-width="6"/>`;
+    g += `<path d="M 0 500 Q 200 420 420 480" stroke-width="5"/>`;
+    g += `<path d="M 600 470 Q 800 400 1000 460 Q 1150 430 1280 470" stroke-width="5"/>`;
+    g += `<circle cx="1080" cy="180" r="45" stroke-width="6"/>`;
+    g += stickFigure(380, 480, 'robed', 1.0, { halo: true, arms: 'down' });
+    g += stickFigure(480, 500, 'standing', 0.9, { arms: 'down' });
+    g += stickFigure(560, 510, 'standing', 0.85, { arms: 'down' });
+    return g;
+  }
+
+  function scenePrayer() {
+    let g = '';
+    g += `<line x1="0" y1="600" x2="1280" y2="600" stroke-width="5"/>`;
+    g += `<path d="M 0 600 Q 320 470 640 560 Q 960 470 1280 580" stroke-width="5"/>`;
+    g += `<circle cx="200" cy="180" r="40" stroke-width="5"/>`;
+    g += `<path d="M 850 150 q 25 -30 60 -15 q 30 -30 65 -10 q 30 -25 60 0" stroke-width="5"/>`;
+    g += stickFigure(640, 400, 'kneeling', 1.4, { halo: true, arms: 'praying' });
+    return g;
+  }
+
+  function sceneFeast() {
+    let g = '';
+    g += `<line x1="0" y1="580" x2="1280" y2="580" stroke-width="5"/>`;
+    g += `<rect x="200" y="500" width="880" height="40" stroke-width="6"/>`;
+    for (let i = 0; i < 5; i++) {
+      const bx = 280 + i * 160;
+      g += `<ellipse cx="${bx}" cy="495" rx="40" ry="14" stroke-width="5"/>`;
+    }
+    g += stickFigure(640, 360, 'robed', 1.1, { halo: true, arms: 'out' });
+    g += stickFigure(300, 400, 'standing', 0.9, { arms: 'down' });
+    g += stickFigure(420, 410, 'standing', 0.9, { arms: 'down' });
+    g += stickFigure(860, 410, 'standing', 0.9, { arms: 'down' });
+    g += stickFigure(980, 400, 'standing', 0.9, { arms: 'down' });
+    return g;
+  }
+
+  function sceneLions() {
+    let g = '';
+    g += `<path d="M 80 100 L 80 700" stroke-width="6"/>`;
+    g += `<path d="M 1200 100 L 1200 700" stroke-width="6"/>`;
+    g += `<path d="M 80 700 L 1200 700" stroke-width="6"/>`;
+    g += `<path d="M 80 100 Q 640 160 1200 100" stroke-width="6"/>`;
+    g += stickFigure(640, 380, 'kneeling', 1.2, { halo: true, arms: 'praying' });
+    function lion(cx, cy) {
+      let l = '';
+      l += `<circle cx="${cx}" cy="${cy}" r="40" stroke-width="6"/>`;
+      l += `<circle cx="${cx}" cy="${cy}" r="22" stroke-width="5"/>`;
+      l += `<ellipse cx="${cx + 70}" cy="${cy + 30}" rx="55" ry="22" stroke-width="6"/>`;
+      l += `<line x1="${cx + 105}" y1="${cy + 50}" x2="${cx + 120}" y2="${cy + 90}" stroke-width="5"/>`;
+      l += `<line x1="${cx + 50}" y1="${cy + 50}" x2="${cx + 50}" y2="${cy + 90}" stroke-width="5"/>`;
+      return l;
+    }
+    g += lion(200, 560);
+    g += lion(950, 560);
+    return g;
+  }
+
+  function sceneShore() {
+    let g = '';
+    g += `<line x1="0" y1="380" x2="1280" y2="380" stroke-width="5"/>`;
+    g += `<path d="M 880 350 Q 960 380 1040 350 L 1020 370 Q 960 390 900 370 Z" stroke-width="5"/>`;
+    g += `<line x1="960" y1="280" x2="960" y2="350" stroke-width="5"/>`;
+    g += `<path d="M 920 290 L 1000 290 L 990 340 L 930 340 Z" stroke-width="5"/>`;
+    g += `<path d="M 0 440 Q 160 420 320 440 Q 480 460 640 440 Q 800 420 960 440 Q 1120 460 1280 440" stroke-width="5"/>`;
+    g += `<path d="M 0 490 Q 160 470 320 490 Q 480 510 640 490 Q 800 470 960 490 Q 1120 510 1280 490" stroke-width="5"/>`;
+    g += stickFigure(380, 470, 'robed', 1.2, { halo: true, arms: 'out' });
+    g += stickFigure(560, 490, 'standing', 1.0, { arms: 'pointing' });
+    return g;
+  }
+
+  function sceneMountain() {
+    let g = '';
+    g += `<path d="M 0 620 L 280 280 L 480 620 Z" stroke-width="6"/>`;
+    g += `<path d="M 380 620 L 700 200 L 1000 620 Z" stroke-width="6"/>`;
+    g += `<path d="M 880 620 L 1100 360 L 1280 620 Z" stroke-width="6"/>`;
+    g += `<circle cx="1050" cy="180" r="40" stroke-width="5"/>`;
+    g += stickFigure(700, 260, 'robed', 0.9, { halo: true, arms: 'up' });
+    return g;
+  }
+
+  function sceneField() {
+    let g = '';
+    g += `<line x1="0" y1="540" x2="1280" y2="540" stroke-width="5"/>`;
+    g += `<circle cx="1080" cy="200" r="45" stroke-width="6"/>`;
+    for (let i = 0; i < 18; i++) {
+      const x = 80 + i * 65;
+      g += `<line x1="${x}" y1="540" x2="${x}" y2="600" stroke-width="4"/>`;
+      g += `<line x1="${x}" y1="540" x2="${x - 10}" y2="510" stroke-width="4"/>`;
+      g += `<line x1="${x}" y1="540" x2="${x + 10}" y2="510" stroke-width="4"/>`;
+    }
+    g += stickFigure(500, 430, 'robed', 1.1, { halo: true, arms: 'out' });
+    return g;
+  }
+
+  function sceneHouse() {
+    let g = '';
+    g += `<line x1="0" y1="600" x2="1280" y2="600" stroke-width="5"/>`;
+    g += `<rect x="780" y="380" width="380" height="220" stroke-width="6"/>`;
+    g += `<path d="M 780 380 L 970 240 L 1160 380" stroke-width="6"/>`;
+    g += `<rect x="900" y="460" width="80" height="140" stroke-width="5"/>`;
+    g += `<rect x="1020" y="430" width="60" height="60" stroke-width="5"/>`;
+    g += stickFigure(640, 470, 'robed', 1.1, { halo: false, arms: 'out' });
+    g += stickFigure(380, 490, 'standing', 1.0, { arms: 'down' });
+    return g;
+  }
+
+  function sceneAltar() {
+    let g = '';
+    g += `<line x1="0" y1="600" x2="1280" y2="600" stroke-width="5"/>`;
+    g += `<rect x="540" y="440" width="200" height="160" stroke-width="6"/>`;
+    g += `<line x1="540" y1="490" x2="740" y2="490" stroke-width="4"/>`;
+    g += `<line x1="640" y1="440" x2="640" y2="490" stroke-width="4"/>`;
+    g += `<line x1="590" y1="490" x2="590" y2="600" stroke-width="4"/>`;
+    g += `<line x1="690" y1="490" x2="690" y2="600" stroke-width="4"/>`;
+    g += `<path d="M 580 440 Q 600 380 620 430 Q 640 360 660 430 Q 680 380 700 440" stroke-width="5"/>`;
+    g += stickFigure(360, 460, 'kneeling', 1.1, { halo: true, arms: 'praying' });
+    return g;
+  }
+
+  const SCENE_TEMPLATES = {
+    'boat-storm': sceneBoatStorm,
+    'crowd': sceneCrowd,
+    'miracle': sceneMiracle,
+    'figures-talking': sceneFiguresTalking,
+    'journey': sceneJourney,
+    'prayer': scenePrayer,
+    'feast': sceneFeast,
+    'lions': sceneLions,
+    'shore': sceneShore,
+    'mountain': sceneMountain,
+    'field': sceneField,
+    'house': sceneHouse,
+    'altar': sceneAltar,
+  };
+
+  function generateSceneSVG(scene) {
+    const fn = SCENE_TEMPLATES[scene.imageType] || sceneFiguresTalking;
+    return svgWrap(fn(scene));
+  }
+
+  function svgToImage(svgString) {
+    return new Promise((resolve, reject) => {
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+      img.src = url;
+    });
+  }
+
+  // ============ AUDIO ============
+  function ensureAudio() {
+    if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (state.audioCtx.state === 'suspended') state.audioCtx.resume();
+    return state.audioCtx;
+  }
+
+  function startAmbience(mood) {
+    if (!$('ambienceOn').checked) return;
+    stopAmbience();
+    const ctx = ensureAudio();
+    const speakerDest = ctx.destination;
+    const recordDest = state.recorderDest;
+
+    const bufLen = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf; noise.loop = true;
+
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    const noiseGain = ctx.createGain();
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'sine';
+
+    if (mood === 'fearful' || mood === 'tense') {
+      filt.frequency.value = 600; noiseGain.gain.value = 0.18;
+      osc.frequency.value = 55; oscGain.gain.value = 0.08;
+    } else if (mood === 'joyful' || mood === 'miraculous') {
+      filt.frequency.value = 1400; noiseGain.gain.value = 0.04;
+      osc.frequency.value = 220; oscGain.gain.value = 0.05;
+    } else if (mood === 'solemn') {
+      filt.frequency.value = 400; noiseGain.gain.value = 0.05;
+      osc.frequency.value = 80; oscGain.gain.value = 0.06;
+    } else {
+      filt.frequency.value = 800; noiseGain.gain.value = 0.06;
+      osc.frequency.value = 110; oscGain.gain.value = 0.04;
+    }
+
+    noise.connect(filt).connect(noiseGain);
+    osc.connect(oscGain);
+    noiseGain.connect(speakerDest);
+    oscGain.connect(speakerDest);
+    if (recordDest) { noiseGain.connect(recordDest); oscGain.connect(recordDest); }
+    noise.start(); osc.start();
+    state.ambienceNodes = { noise, osc, noiseGain, oscGain };
+  }
+
+  function stopAmbience() {
+    if (state.ambienceNodes) {
+      try { state.ambienceNodes.noise.stop(); state.ambienceNodes.osc.stop(); } catch (e) {}
+      state.ambienceNodes = null;
+    }
+  }
+
+  function playSfx(kind) {
+    if (!$('ambienceOn').checked) return;
+    const ctx = ensureAudio();
+    const speakerDest = ctx.destination;
+    const recordDest = state.recorderDest;
+    const now = ctx.currentTime;
+    if (kind === 'waves' || kind === 'wind') {
+      const bufLen = ctx.sampleRate * 1.5;
+      const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = (Math.random()*2-1) * 0.4 * (1 - i/bufLen);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.25, now);
+      src.connect(g);
+      g.connect(speakerDest);
+      if (recordDest) g.connect(recordDest);
+      src.start();
+    } else if (kind === 'celebration') {
+      [440, 554, 659].forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = f; o.type = 'triangle';
+        g.gain.setValueAtTime(0, now + i*0.15);
+        g.gain.linearRampToValueAtTime(0.12, now + i*0.15 + 0.05);
+        g.gain.linearRampToValueAtTime(0, now + i*0.15 + 0.6);
+        o.connect(g);
+        g.connect(speakerDest);
+        if (recordDest) g.connect(recordDest);
+        o.start(now + i*0.15);
+        o.stop(now + i*0.15 + 0.7);
+      });
+    }
+  }
+
+  function speak(text) {
+    if (!$('narrationOn').checked) return Promise.resolve();
+    if (!('speechSynthesis' in window)) return Promise.resolve();
+    return new Promise((resolve) => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.92; u.pitch = 1.0; u.volume = 1.0;
+      const voices = speechSynthesis.getVoices();
+      const preferred = voices.find(v => /en-(US|GB)/.test(v.lang) && /female|samantha|google.*english/i.test(v.name))
+                      || voices.find(v => /en-(US|GB)/.test(v.lang))
+                      || voices[0];
+      if (preferred) u.voice = preferred;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      state.speechUtterance = u;
+      speechSynthesis.speak(u);
+    });
+  }
+
+  function cancelSpeech() {
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  // ============ ANIMATION ============
+  function pickKenBurns(scene, idx) {
+    const moves = [
+      { from: 1.0, to: 1.15, panX: 0, panY: 0 },
+      { from: 1.18, to: 1.0, panX: 0, panY: 0 },
+      { from: 1.08, to: 1.08, panX: -60, panY: 0 },
+      { from: 1.08, to: 1.08, panX: 60, panY: 0 },
+      { from: 1.0, to: 1.14, panX: -40, panY: -10 },
+    ];
+    const move = { ...moves[idx % moves.length] };
+    move.shake = (scene.mood === 'fearful' || scene.mood === 'tense');
+    return move;
+  }
+
+  function drawScene(ctx, img, scene, move, t) {
+    const W = 1280, H = 720;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, W, H);
+
+    const scale = move.from + (move.to - move.from) * t;
+    let offsetX = move.panX * t;
+    let offsetY = move.panY * t;
+    if (move.shake) {
+      offsetX += (Math.random() - 0.5) * 8;
+      offsetY += (Math.random() - 0.5) * 8;
+    }
+
+    ctx.save();
+    ctx.translate(W/2 + offsetX, H/2 + offsetY);
+    ctx.scale(scale, scale);
+    ctx.translate(-W/2, -H/2);
+    ctx.drawImage(img, 0, 0, W, H);
+    ctx.restore();
+
+    if (t < 0.08) {
+      ctx.fillStyle = `rgba(255,255,255,${1 - t/0.08})`;
+      ctx.fillRect(0, 0, W, H);
+    } else if (t > 0.92) {
+      ctx.fillStyle = `rgba(255,255,255,${(t - 0.92)/0.08})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (t < 0.25) {
+      const alpha = Math.min(1, t / 0.1) * (1 - Math.max(0, (t - 0.18) / 0.07));
+      ctx.fillStyle = `rgba(17,17,17,${alpha * 0.9})`;
+      ctx.fillRect(0, H - 90, W, 70);
+      ctx.fillStyle = `rgba(247,243,234,${alpha})`;
+      ctx.font = '500 36px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(scene.title, W/2, H - 55);
+    }
+  }
+
+  async function preRenderScenes() {
+    const imgs = [];
+    for (const s of state.scenes) {
+      const svg = generateSceneSVG(s);
+      s.svg = svg;
+      const img = await svgToImage(svg);
+      imgs.push(img);
+    }
+    return imgs;
+  }
+
+  function renderSceneGrid() {
+    const grid = $('sceneGrid');
+    grid.innerHTML = '';
+    state.scenes.forEach((s, i) => {
+      const card = document.createElement('div');
+      card.className = 'scene-card';
+      card.innerHTML = `
+        <div class="num">Scene ${i+1} &middot; ${s.verseRange}</div>
+        <div class="title">${escapeHtml(s.title)}</div>
+        <div class="preview">${s.svg}</div>
+        <div class="narr">${escapeHtml(s.narration)}</div>
+      `;
+      grid.appendChild(card);
+    });
+    $('scenesStage').classList.remove('hidden');
+  }
+
+  // ============ PLAYBACK ============
+  let preRenderedImgs = [];
+
+  async function playSlideshow() {
+    state.isPlaying = true;
+    const canvas = $('stage');
+    const ctx = canvas.getContext('2d');
+    const sceneSecs = parseInt($('sceneSecs').value) || 7;
+    $('scriptureRef').textContent = state.reference;
+
+    for (let i = 0; i < state.scenes.length; i++) {
+      if (!state.isPlaying) break;
+      state.currentSceneIdx = i;
+      const scene = state.scenes[i];
+      const img = preRenderedImgs[i];
+      const move = pickKenBurns(scene, i);
+
+      $('progressBar').style.width = `${(i / state.scenes.length) * 100}%`;
+      $('sceneCaption').textContent = scene.narration;
+
+      startAmbience(scene.mood);
+      if (scene.sound) setTimeout(() => playSfx(scene.sound), 200);
+      const speakPromise = speak(scene.narration);
+
+      const start = performance.now();
+      const dur = sceneSecs * 1000;
+      await new Promise(resolve => {
+        function frame() {
+          if (!state.isPlaying) { resolve(); return; }
+          const elapsed = performance.now() - start;
+          const t = Math.min(1, elapsed / dur);
+          drawScene(ctx, img, scene, move, t);
+          if (t >= 1) { resolve(); return; }
+          state.animFrameId = requestAnimationFrame(frame);
+        }
+        frame();
+      });
+
+      await Promise.race([speakPromise, new Promise(r => setTimeout(r, 1500))]);
+    }
+
+    $('progressBar').style.width = '100%';
+    stopAmbience();
+    cancelSpeech();
+    state.isPlaying = false;
+  }
+
+  async function recordVideo() {
+    if (state.isRecording) return;
+    state.isRecording = true;
+    $('recordBtn').disabled = true;
+    $('playBtn').disabled = true;
+    $('downloadArea').innerHTML = '';
+    setStatus('Recording... do not switch tabs. This takes about ' +
+      (state.scenes.length * parseInt($('sceneSecs').value)) + ' seconds.');
+
+    const canvas = $('stage');
+    const videoStream = canvas.captureStream(30);
+
+    const ctx = ensureAudio();
+    const dest = ctx.createMediaStreamDestination();
+    state.recorderDest = dest;
+
+    const combined = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...dest.stream.getAudioTracks()
+    ]);
+
+    let mimeType = 'video/webm;codecs=vp9,opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+    const recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 4000000 });
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+    const finished = new Promise(resolve => {
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        state.recordedBlob = blob;
+        resolve(blob);
+      };
+    });
+
+    recorder.start();
+    await playSlideshow();
+    recorder.stop();
+    const blob = await finished;
+
+    state.recorderDest = null;
+    state.isRecording = false;
+    $('recordBtn').disabled = false;
+    $('playBtn').disabled = false;
+    setStatus('');
+
+    const url = URL.createObjectURL(blob);
+    const refSlug = state.reference.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    $('downloadArea').innerHTML = `
+      <a class="download-link" href="${url}" download="living_lines_${refSlug}.webm">
+        Download video (${(blob.size / 1024 / 1024).toFixed(1)} MB, .webm)
+      </a>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic;">
+        WebM plays in any modern browser. For true .mp4 run it through cloudconvert.com.
+      </div>
+    `;
+  }
+
+  // ============ EVENT WIRING ============
+  document.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => { $('verseInput').value = btn.dataset.q; });
+  });
+
+  $('goBtn').addEventListener('click', async () => {
+    const ref = $('verseInput').value.trim();
+    if (!ref) { setStatus('Enter a Bible reference first.', true); return; }
+    $('goBtn').disabled = true;
+    $('verseStage').classList.add('hidden');
+    $('scenesStage').classList.add('hidden');
+    $('playerStage').classList.add('hidden');
+    setStatus('Fetching the passage...');
+    try {
+      const passage = await fetchPassage(ref);
+      state.reference = passage.reference;
+      state.verseText = passage.text;
+      state.verses = passage.verses;
+      renderVerse();
+
+      setStatus('Planning the scenes...');
+      state.scenes = planScenesLocally(passage);
+
+      setStatus('Drawing the scenes...');
+      preRenderedImgs = await preRenderScenes();
+      renderSceneGrid();
+
+      const canvas = $('stage');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, 1280, 720);
+      ctx.drawImage(preRenderedImgs[0], 0, 0, 1280, 720);
+      $('scriptureRef').textContent = state.reference;
+      $('sceneCaption').textContent = '';
+      $('playerStage').classList.remove('hidden');
+
+      setStatus('Ready. Press Play to preview, or Record to save as a video.');
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || 'Something went wrong.', true);
+    } finally {
+      $('goBtn').disabled = false;
+    }
+  });
+
+  $('verseInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('goBtn').click();
+  });
+
+  $('playBtn').addEventListener('click', async () => {
+    if (state.isPlaying) {
+      state.isPlaying = false;
+      cancelSpeech();
+      stopAmbience();
+      $('playBtn').textContent = 'Play';
+      return;
+    }
+    ensureAudio();
+    $('playBtn').textContent = 'Stop';
+    await playSlideshow();
+    $('playBtn').textContent = 'Play';
+  });
+
+  $('recordBtn').addEventListener('click', async () => {
+    ensureAudio();
+    await recordVideo();
+  });
+
+  $('restartBtn').addEventListener('click', () => {
+    state.isPlaying = false;
+    cancelSpeech();
+    stopAmbience();
+    $('verseInput').focus();
+    $('verseInput').select();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  if ('speechSynthesis' in window) {
+    speechSynthesis.onvoiceschanged = () => {};
+    speechSynthesis.getVoices();
+  }
+</script>
